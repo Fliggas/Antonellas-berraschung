@@ -1,728 +1,662 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
-   <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>Eine kleine Überraschung</title>
-   <!-- Google Fonts -->
-   <link rel="preconnect" href="https://fonts.googleapis.com">
-   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400&display=swap" rel="stylesheet">
-   <!-- Tailwind CSS -->
-   <script src="https://cdn.tailwindcss.com"></script>
-   <style>
-       /* Grundlegende Stile und Schriftarten */
-       body {
-           font-family: 'Poppins', sans-serif;
-           transition: background-image 1.5s ease-in-out;
-           overflow: hidden; /* Verhindert Scrollen */
-           -webkit-font-smoothing: antialiased;
-           -moz-osx-font-smoothing: grayscale;
-       }
-       .font-fancy { font-family: 'Playfair Display', serif; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eine kleine Überraschung</title>
+    <!-- Google Fonts --><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Grundlegende Stile und Schriftarten */
+        body {
+            font-family: 'Poppins', sans-serif;
+            transition: background-image 1.5s ease-in-out;
+            overflow: hidden; /* Verhindert Scrollen */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .font-fancy { font-family: 'Playfair Display', serif; }
+
+        /* Partikel-Canvas im Hintergrund */
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+        }
+        #particle-canvas.visible {
+            opacity: 1;
+        }
+
+        /* Verbesserte Animationen für die Karte */
+        .card-container {
+            perspective: 1000px; /* Erzeugt eine 3D-Perspektive für Kind-Elemente */
+        }
+
+        @keyframes card-enter {
+            from {
+                opacity: 0;
+                transform: translateY(40px) rotateX(-10deg) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) rotateX(0deg) scale(1);
+            }
+        }
+        .card-animation {
+            animation: card-enter 0.9s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+            transform-style: preserve-3d;
+        }
+       
+        /* Glühender Rand-Effekt für die Karte */
+        #card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 24px; /* entspricht rounded-3xl */
+            padding: 2px;
+            background: linear-gradient(135deg, rgba(253, 244, 212, 0.2), rgba(176, 196, 142, 0.1));
+            -webkit-mask:
+                linear-gradient(#fff 0 0) content-box,
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
 
 
-       /* Partikel-Canvas im Hintergrund */
-       #particle-canvas {
-           position: fixed;
-           top: 0;
-           left: 0;
-           width: 100%;
-           height: 100%;
-           z-index: 0;
-           opacity: 0;
-           transition: opacity 2s ease-in-out;
-       }
-       #particle-canvas.visible {
-           opacity: 1;
-       }
+        /* --- Countdown-Animation im Dreh-Stil --- */
+        .digit-group {
+            height: 3.5rem;
+            overflow: hidden;
+        }
+        .digit-wheel {
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        .digit-wheel > span {
+            height: 3.5rem;
+            line-height: 3.5rem;
+        }
+       
+        /* Button-Stile und Hover-Effekte */
+        .nav-btn {
+            transition: all 0.3s ease;
+        }
+        .nav-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(253, 244, 212, 0.3);
+        }
+        .nav-btn:active {
+            transform: scale(1.05);
+        }
 
+        /* Travel Info Icon Styling */
+        .travel-icon {
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 0.5rem;
+            width: 1.25rem;
+            height: 1.25rem;
+        }
 
-       /* Verbesserte Animationen für die Karte */
-       .card-container {
-           perspective: 1000px; /* Erzeugt eine 3D-Perspektive für Kind-Elemente */
-       }
+        /* NEU: Fortschrittsanzeige */
+        .progress-bar {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+        .progress-dot {
+            width: 12px;
+            height: 12px;
+            background-color: rgba(253, 244, 212, 0.2);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .progress-dot:hover {
+            background-color: rgba(253, 244, 212, 0.5);
+            transform: scale(1.2);
+        }
+        .progress-dot.active {
+            background-color: #FDF4D4; /* yellow-100 */
+            transform: scale(1.3);
+            box-shadow: 0 0 10px #FDF4D4;
+        }
+        .progress-dot.visited {
+             background-color: rgba(253, 244, 212, 0.4);
+        }
 
+        /* NEU: Geteilter Stil für Titel in der finalen Ansicht */
+        .list-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem; /* text-xl */
+            color: #FDF4D4; /* yellow-100 */
+            margin-bottom: 1rem; /* mb-4 */
+            border-bottom: 1px solid rgba(253, 244, 212, 0.2); /* border-yellow-100/20 */
+            padding-bottom: 0.5rem; /* pb-2 */
+        }
 
-       @keyframes card-enter {
-           from {
-               opacity: 0;
-               transform: translateY(40px) rotateX(-10deg) scale(0.95);
-           }
-           to {
-               opacity: 1;
-               transform: translateY(0) rotateX(0deg) scale(1);
-           }
-       }
-       .card-animation {
-           animation: card-enter 0.9s cubic-bezier(0.19, 1, 0.22, 1) forwards;
-           transform-style: preserve-3d;
-       }
-      
-       /* Glühender Rand-Effekt für die Karte */
-       #card::before {
-           content: '';
-           position: absolute;
-           inset: 0;
-           border-radius: 24px; /* entspricht rounded-3xl */
-           padding: 2px;
-           background: linear-gradient(135deg, rgba(253, 244, 212, 0.2), rgba(176, 196, 142, 0.1));
-           -webkit-mask:
-               linear-gradient(#fff 0 0) content-box,
-               linear-gradient(#fff 0 0);
-           -webkit-mask-composite: xor;
-           mask-composite: exclude;
-           pointer-events: none;
-       }
+        /* NEU: Scroll-Container für Reiseplan & Packliste */
+        #final-details-scroll-container {
+            max-height: 280px; /* Feste maximale Höhe für den gesamten Bereich */
+            overflow-y: auto;  /* Scrollen erlauben, wenn nötig */
+            padding-right: 12px; /* Platz für die Scrollleiste, um Überlappung zu vermeiden */
+        }
+       
+        /* Optional: Benutzerdefinierte Scrollleiste für Webkit-Browser (Chrome, Safari) */
+        #final-details-scroll-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        #final-details-scroll-container::-webkit-scrollbar-track {
+            background: rgba(12, 43, 33, 0.5); /* emerald-900/50 */
+            border-radius: 3px;
+        }
+        #final-details-scroll-container::-webkit-scrollbar-thumb {
+            background-color: rgba(253, 244, 212, 0.4); /* yellow-100/40 */
+            border-radius: 3px;
+        }
+         #final-details-scroll-container::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(253, 244, 212, 0.6); /* yellow-100/60 */
+        }
 
-
-
-
-       /* --- Countdown-Animation im Dreh-Stil --- */
-       .digit-group {
-           height: 3.5rem;
-           overflow: hidden;
-       }
-       .digit-wheel {
-           display: flex;
-           flex-direction: column;
-           transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-       }
-       .digit-wheel > span {
-           height: 3.5rem;
-           line-height: 3.5rem;
-       }
-      
-       /* Button-Stile und Hover-Effekte */
-       .nav-btn {
-           transition: all 0.3s ease;
-       }
-       .nav-btn:hover {
-           transform: scale(1.1);
-           box-shadow: 0 0 20px rgba(253, 244, 212, 0.3);
-       }
-       .nav-btn:active {
-           transform: scale(1.05);
-       }
-
-
-       /* Travel Info Icon Styling */
-       .travel-icon {
-           display: inline-block;
-           vertical-align: middle;
-           margin-right: 0.5rem;
-           width: 1.25rem;
-           height: 1.25rem;
-       }
-
-
-       /* NEU: Fortschrittsanzeige */
-       .progress-bar {
-           display: flex;
-           gap: 0.75rem;
-           margin-top: 1.5rem;
-       }
-       .progress-dot {
-           width: 12px;
-           height: 12px;
-           background-color: rgba(253, 244, 212, 0.2);
-           border-radius: 50%;
-           cursor: pointer;
-           transition: all 0.3s ease;
-       }
-       .progress-dot:hover {
-           background-color: rgba(253, 244, 212, 0.5);
-           transform: scale(1.2);
-       }
-       .progress-dot.active {
-           background-color: #FDF4D4; /* yellow-100 */
-           transform: scale(1.3);
-           box-shadow: 0 0 10px #FDF4D4;
-       }
-       .progress-dot.visited {
-            background-color: rgba(253, 244, 212, 0.4);
-       }
-
-
-       /* NEU: Geteilter Stil für Titel in der finalen Ansicht */
-       .list-title {
-           font-family: 'Playfair Display', serif;
-           font-size: 1.25rem; /* text-xl */
-           color: #FDF4D4; /* yellow-100 */
-           margin-bottom: 1rem; /* mb-4 */
-           border-bottom: 1px solid rgba(253, 244, 212, 0.2); /* border-yellow-100/20 */
-           padding-bottom: 0.5rem; /* pb-2 */
-       }
-
-
-       /* NEU: Scroll-Container für Reiseplan & Packliste */
-       #final-details-scroll-container {
-           max-height: 280px; /* Feste maximale Höhe für den gesamten Bereich */
-           overflow-y: auto;  /* Scrollen erlauben, wenn nötig */
-           padding-right: 12px; /* Platz für die Scrollleiste, um Überlappung zu vermeiden */
-       }
-      
-       /* Optional: Benutzerdefinierte Scrollleiste für Webkit-Browser (Chrome, Safari) */
-       #final-details-scroll-container::-webkit-scrollbar {
-           width: 6px;
-       }
-       #final-details-scroll-container::-webkit-scrollbar-track {
-           background: rgba(12, 43, 33, 0.5); /* emerald-900/50 */
-           border-radius: 3px;
-       }
-       #final-details-scroll-container::-webkit-scrollbar-thumb {
-           background-color: rgba(253, 244, 212, 0.4); /* yellow-100/40 */
-           border-radius: 3px;
-       }
-        #final-details-scroll-container::-webkit-scrollbar-thumb:hover {
-           background-color: rgba(253, 244, 212, 0.6); /* yellow-100/60 */
-       }
-
-
-       /* NEU: Animationen für die Enthüllungsseite */
-       .reveal-animation {
-           opacity: 0; /* Beginnt unsichtbar */
-           animation: fade-in-up-reveal 0.8s 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-       }
-       .reveal-animation span {
-           opacity: 0; /* Das SPAN mit "PARIS" ist auch erstmal unsichtbar */
-           display: inline-block;
-           animation: scale-in-reveal 1.2s 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-       }
-       @keyframes fade-in-up-reveal {
-           to { opacity: 1; transform: translateY(0); }
-       }
-       @keyframes scale-in-reveal {
-           from {
-               opacity: 0;
-               transform: scale(0.9);
-               letter-spacing: 0.2em;
-           }
-           to {
-               opacity: 1;
-               transform: scale(1);
-               /* entspricht Tailwind 'tracking-widest' */
-               letter-spacing: 0.1em;
-           }
-       }
-   </style>
+        /* NEU: Animationen für die Enthüllungsseite */
+        .reveal-animation {
+            opacity: 0; /* Beginnt unsichtbar */
+            animation: fade-in-up-reveal 0.5s 0.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        .reveal-animation span {
+            opacity: 0; /* Das SPAN mit "PARIS" ist auch erstmal unsichtbar */
+            display: inline-block;
+            animation: scale-in-reveal 1.2s 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        @keyframes fade-in-up-reveal {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scale-in-reveal {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+                letter-spacing: 0.2em;
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+                /* entspricht Tailwind 'tracking-widest' */
+                letter-spacing: 0.1em;
+            }
+        }
+    </style>
 </head>
 <body class="bg-gray-900 bg-cover bg-center transition-all duration-1000">
-  
-   <!-- Partikel-Effekt Canvas -->
-   <canvas id="particle-canvas"></canvas>
+ 
+    <!-- Partikel-Effekt Canvas --><canvas id="particle-canvas"></canvas>
 
+    <!-- Overlay für den Hintergrund --><div id="overlay" class="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-lg transition-all duration-1000 z-[1]"></div>
+    <!-- NEU: Dediziertes Element für das Hintergrundbild für sanftes Einblenden --><div id="background-overlay" class="absolute inset-0 bg-cover bg-center transition-opacity duration-[1500ms] ease-in-out opacity-0 z-[0]"></div>
 
-   <!-- Overlay für den Hintergrund -->
-   <div id="overlay" class="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-lg transition-opacity duration-1000 z-[1]"></div>
-   <!-- NEU: Dediziertes Element für das Hintergrundbild für sanftes Einblenden -->
-   <div id="background-overlay" class="absolute inset-0 bg-cover bg-center transition-opacity duration-[1500ms] ease-in-out opacity-0 z-[0]"></div>
+    <!-- Hauptcontainer --><main class="relative min-h-screen flex flex-row items-center justify-center p-2 sm:p-6 text-white text-center z-10">
+       
+        <!-- DESKTOP PREV BUTTON --><div class="w-16 md:w-24 flex-shrink-0 flex items-center justify-center">
+             <button id="prevBtn-desktop" aria-label="Vorheriger Schritt" class="nav-btn p-4 bg-emerald-700/50 text-yellow-100 rounded-full shadow-lg hover:bg-emerald-600/70 focus:outline-none focus:ring-2 focus:ring-yellow-300 hidden md:block">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+        </div>
 
+        <div class="card-container w-full max-w-2xl">
+            <div id="card" class="relative bg-emerald-900/40 backdrop-blur-lg rounded-3xl p-6 sm:p-10 md:p-12 shadow-2xl w-full opacity-0">
+                <!-- Inhalt der Karte --><div id="card-content-wrapper">
+                    <h1 id="title" class="font-fancy text-3xl sm:text-4xl md:text-5xl font-bold text-yellow-100 mb-4"></h1>
+                    <!-- Flex-Richtung geändert auf `flex-col` für bessere Kontrolle über mehrzeiligen Inhalt --><p id="content" class="text-emerald-100 text-base sm:text-lg leading-relaxed whitespace-pre-line min-h-[120px] flex flex-col justify-center"></p>
+                </div>
+               
+                <!-- Countdown & Reiseplan (initial versteckt) --><div id="final-view-container" class="hidden">
+                    <div id="countdown-container" class="mb-4">
+                        <h3 class="font-fancy text-2xl text-yellow-100 mb-6">Die Zeit bis zu unserem Abenteuer</h3>
+                        <div class="flex justify-center items-start gap-2 sm:gap-4 text-yellow-100">
+                            <!-- Tage --><div class="text-center min-w-[90px] bg-emerald-700/60 p-3 rounded-xl">
+                                <div id="days" class="text-5xl font-bold h-14 flex items-center justify-center">
+                                    <div class="digit-group"><div class="digit-wheel"></div></div><div class="digit-group"><div class="digit-wheel"></div></div>
+                                </div>
+                                <div class="text-xs sm:text-sm opacity-80">Tage</div>
+                            </div>
+                            <!-- Stunden --><div class="text-center min-w-[90px] bg-emerald-700/60 p-3 rounded-xl">
+                                <div id="hours" class="text-5xl font-bold h-14 flex items-center justify-center">
+                                    <div class="digit-group"><div class="digit-wheel"></div></div><div class="digit-group"><div class="digit-wheel"></div></div>
+                                </div>
+                                <div class="text-xs sm:text-sm opacity-80">Stunden</div>
+                            </div>
+                            <!-- Minuten --><div class="text-center min-w-[90px] bg-emerald-700/60 p-3 rounded-xl">
+                                <div id="minutes" class="text-5xl font-bold h-14 flex items-center justify-center">
+                                    <div class="digit-group"><div class="digit-wheel"></div></div><div class="digit-group"><div class="digit-wheel"></div></div>
+                                </div>
+                                <div class="text-xs sm:text-sm opacity-80">Minuten</div>
+                            </div>
+                            <!-- Sekunden --><div class="text-center min-w-[90px] bg-emerald-700/60 p-3 rounded-xl">
+                                <div id="seconds" class="text-5xl font-bold h-14 flex items-center justify-center">
+                                    <div class="digit-group"><div class="digit-wheel"></div></div><div class="digit-group"><div class="digit-wheel"></div></div>
+                                </div>
+                                <div class="text-xs sm:text-sm opacity-80">Sekunden</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- NEUER SCROLL-CONTAINER für Details --><div id="final-details-scroll-container">
+                        <!-- Reiseplan --><div id="itinerary-details" class="text-left"></div>
+                        <!-- Packliste --><div id="packing-list" class="text-left mt-6"></div>
+                    </div>
+                </div>
 
-   <!-- Hauptcontainer -->
-   <main class="relative min-h-screen flex flex-row items-center justify-center p-2 sm:p-6 text-white text-center z-10">
-      
-       <!-- DESKTOP PREV BUTTON -->
-       <div class="w-16 md:w-24 flex-shrink-0 flex items-center justify-center">
-            <button id="prevBtn-desktop" aria-label="Vorheriger Schritt" class="nav-btn p-4 bg-emerald-700/50 text-yellow-100 rounded-full shadow-lg hover:bg-emerald-600/70 focus:outline-none focus:ring-2 focus:ring-yellow-300 hidden md:block">
-               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
-           </button>
-       </div>
+                <!-- MOBILE Navigations-Buttons --><div id="navigation-buttons" class="mt-8 flex justify-center items-center space-x-4 md:hidden">
+                    <button id="prevBtn" aria-label="Vorheriger Schritt" class="nav-btn p-4 bg-emerald-700/50 text-yellow-100 rounded-full shadow-lg hover:bg-emerald-600/70 focus:outline-none focus:ring-2 focus:ring-yellow-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <button id="nextBtn" aria-label="Nächster Schritt" class="nav-btn p-4 bg-yellow-200 text-emerald-900 rounded-full shadow-lg hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                </div>
+            </div>
+             <!-- NEU: Fortschrittsanzeige hier platziert --><div id="progress-bar" class="progress-bar justify-center"></div>
+        </div>
 
+        <!-- DESKTOP NEXT BUTTON --><div class="w-16 md:w-24 flex-shrink-0 flex items-center justify-center">
+            <button id="nextBtn-desktop" aria-label="Nächster Schritt" class="nav-btn p-4 bg-yellow-200 text-emerald-900 rounded-full shadow-lg hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-300 hidden md:block">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </button>
+        </div>
+    </main>
 
-       <div class="card-container w-full max-w-2xl">
-           <div id="card" class="relative bg-emerald-900/40 backdrop-blur-lg rounded-3xl p-6 sm:p-10 md:p-12 shadow-2xl w-full opacity-0">
-               <!-- Inhalt der Karte -->
-               <div id="card-content-wrapper">
-                   <h1 id="title" class="font-fancy text-3xl sm:text-4xl md:text-5xl font-bold text-yellow-100 mb-4"></h1>
-                   <!-- Flex-Richtung geändert auf `flex-col` für bessere Kontrolle über mehrzeiligen Inhalt -->
-                   <p id="content" class="text-emerald-100 text-base sm:text-lg leading-relaxed whitespace-pre-line min-h-[120px] flex flex-col justify-center"></p>
-               </div>
-              
-               <!-- Countdown & Reiseplan (initial versteckt) -->
-               <div id="final-view-container" class="hidden">
-                   <div id="countdown-container" class="mb-4">
-                       <h3 class="font-fancy text-2xl text-yellow-100 mb-6">Die Zeit bis zu unserem Abenteuer</h3>
-                       <div class="flex justify-center items-start gap-2 sm:gap-4 text-yellow-100">
-                           <!-- Tage -->
-                           <div class="text-center min-w-[90px] bg-emerald-700/60 p-3 rounded-xl">
-                               <div id="days" class="text-5xl font-bold h-14 flex items-center justify-center">
-                                   <div class="digit-group"><div class="digit-wheel"></div></div><div class="digit-group"><div class="digit-wheel"></div></div>
-                               </div>
-                               <div class="text-xs sm:text-sm opacity-80">Tage</div>
-                           </div>
-                           <!-- Stunden -->
-                           <div class="text-center min-w-[90px] bg-emerald-700/60 p-3 rounded-xl">
-                               <div id="hours" class="text-5xl font-bold h-14 flex items-center justify-center">
-                                   <div class="digit-group"><div class="digit-wheel"></div></div><div class="digit-group"><div class="digit-wheel"></div></div>
-                               </div>
-                               <div class="text-xs sm:text-sm opacity-80">Stunden</div>
-                           </div>
-                           <!-- Minuten -->
-                           <div class="text-center min-w-[90px] bg-emerald-700/60 p-3 rounded-xl">
-                               <div id="minutes" class="text-5xl font-bold h-14 flex items-center justify-center">
-                                   <div class="digit-group"><div class="digit-wheel"></div></div><div class="digit-group"><div class="digit-wheel"></div></div>
-                               </div>
-                               <div class="text-xs sm:text-sm opacity-80">Minuten</div>
-                           </div>
-                           <!-- Sekunden -->
-                           <div class="text-center min-w-[90px] bg-emerald-700/60 p-3 rounded-xl">
-                               <div id="seconds" class="text-5xl font-bold h-14 flex items-center justify-center">
-                                   <div class="digit-group"><div class="digit-wheel"></div></div><div class="digit-group"><div class="digit-wheel"></div></div>
-                               </div>
-                               <div class="text-xs sm:text-sm opacity-80">Sekunden</div>
-                           </div>
-                       </div>
-                   </div>
-                   <!-- NEUER SCROLL-CONTAINER für Details -->
-                   <div id="final-details-scroll-container">
-                       <!-- Reiseplan -->
-                       <div id="itinerary-details" class="text-left"></div>
-                       <!-- Packliste -->
-                       <div id="packing-list" class="text-left mt-6"></div>
-                   </div>
-               </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
 
+            // --- 1. ZENTRALE KONFIGURATION ---
+            // Alle veränderbaren Daten sind an einem Ort für leichtere Anpassung.
+            const config = {
+                departureDate: '2025-11-18T06:45:00',
+                parisImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1950&q=80',
+                icons: {
+                    plane: `<svg class="travel-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M17.25 8.56l-5.25-1.5V3.75a1.5 1.5 0 00-3 0v3.31l-5.25 1.5a1.5 1.5 0 00-1.13 1.44v1.51a1.5 1.5 0 001.03 1.44l5.35 1.53v2.96l-1.88.94a.75.75 0 10.66 1.34l2.5-1.25a.75.75 0 00.44 0l2.5 1.25a.75.75 0 10.66-1.34l-1.88-.94v-2.96l5.35-1.53a1.5 1.5 0 001.03-1.44v-1.51a1.5 1.5 0 00-1.13-1.44z" /></svg>`,
+                    hotel: `<svg class="travel-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg>`,
+                },
+                steps: [
+                    { type: 'intro', title: "Für Antonella", content: "Ich habe eine kleine Überraschung für dich.\nBist du bereit?" },
+                    { type: 'intro', title: "Ein kleines Rätsel...", content: "Stell dir eine Stadt vor, in der an jeder Ecke Kunst, Geschichte und Liebe in der Luft liegen.\nEine Stadt, die wir aus einem unserer Lieblingsfilme kennen.\n\n<span class='font-fancy font-bold text-yellow-100 text-2xl'>Hast du eine Idee?</span>" },
+                    { type: 'reveal', title: "PACK DEINE TASCHE!", content: "Wir fliegen nach\n\n<span class='font-fancy font-bold text-yellow-100 text-4xl sm:text-5xl tracking-widest'>P A R I S</span>\n\nDie Stadt der Lichter wartet auf uns!" },
+                    { type: 'details', title: "Unsere Reisedaten", content: `\n<span class='font-bold text-yellow-100'>Dienstag, 18. Nov</span> bis <span class='font-bold text-yellow-100'>Freitag, 21. Nov.</span>\n\n${"ICON_plane"}FRA → CDG | 06:45 - 08:00 Uhr\n${"ICON_hotel"}Hôtel Barnett Paris` },
+                    { type: 'day', title: "Tag 1: Ankunft & Montmartre", content: "Nach der Ankunft entdecken wir Montmartre, besuchen die Sacré-Cœur und genießen ein romantisches Dinner mit Blick über die Stadt." },
+                    { type: 'day', title: "Tag 2: Kunst & Lichter", content: "Wir bestaunen die Mona Lisa im Louvre, schlendern durch den Jardin des Tuileries und lassen den Abend mit dem Funkeln des Eiffelturms ausklingen." },
+                    { type: 'day', title: "Tag 3: Filmkulissen & Historie", content: "Wir erkunden den Canal Saint-Martin, Le Marais und die Île de la Cité mit Notre-Dame, bevor wir den Abend im Quartier Latin verbringen." },
+                    { type: 'day', title: "Tag 4: Ein süßer Abschied", content: `Den letzten Vormittag nutzen wir für ein gemütliches Frühstück, bevor es nach Hause geht.\n\n${"ICON_plane"}CDG → FRA | 18:50 - 20:05 Uhr` },
+                    { type: 'final', title: "Paris wartet auf uns", content: "Die fabelhafte Welt der Antonella", isFinal: true }
+                ]
+            };
 
-               <!-- MOBILE Navigations-Buttons -->
-               <div id="navigation-buttons" class="mt-8 flex justify-center items-center space-x-4 md:hidden">
-                   <button id="prevBtn" aria-label="Vorheriger Schritt" class="nav-btn p-4 bg-emerald-700/50 text-yellow-100 rounded-full shadow-lg hover:bg-emerald-600/70 focus:outline-none focus:ring-2 focus:ring-yellow-300">
-                       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
-                   </button>
-                   <button id="nextBtn" aria-label="Nächster Schritt" class="nav-btn p-4 bg-yellow-200 text-emerald-900 rounded-full shadow-lg hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-300">
-                       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-                   </button>
-               </div>
-           </div>
-            <!-- NEU: Fortschrittsanzeige hier platziert -->
-           <div id="progress-bar" class="progress-bar justify-center"></div>
-       </div>
+            // --- 2. MODULARE ANWENDUNGS-LOGIK ---
+            // Die Logik ist in einem Objekt gekapselt, um den globalen Scope sauber zu halten.
+            const SurpriseApp = {
+                // Zustand der Anwendung
+                state: {
+                    currentStep: 0,
+                    countdownInterval: null,
+                    digitHeight: 0,
+                    particles: [],
+                    visitedSteps: new Set([0]),
+                },
 
+                // DOM-Elemente
+                elements: {
+                    body: document.body,
+                    overlay: document.getElementById('overlay'),
+                    card: document.getElementById('card'),
+                    title: document.getElementById('title'),
+                    content: document.getElementById('content'),
+                    prevBtn: document.getElementById('prevBtn'),
+                    nextBtn: document.getElementById('nextBtn'),
+                    prevBtnDesktop: document.getElementById('prevBtn-desktop'),
+                    nextBtnDesktop: document.getElementById('nextBtn-desktop'),
+                    progressBar: document.getElementById('progress-bar'),
+                    cardContentWrapper: document.getElementById('card-content-wrapper'),
+                    finalViewContainer: document.getElementById('final-view-container'),
+                    itineraryDetails: document.getElementById('itinerary-details'),
+                    packingList: document.getElementById('packing-list'),
+                    countdown: {
+                        container: document.getElementById('countdown-container'),
+                        days: document.getElementById('days'),
+                        hours: document.getElementById('hours'),
+                        minutes: document.getElementById('minutes'),
+                        seconds: document.getElementById('seconds'),
+                    },
+                    particleCanvas: document.getElementById('particle-canvas'),
+                    backgroundOverlay: document.getElementById('background-overlay'),
+                },
+               
+                // Initialisierung
+                init() {
+                    this.countdown.parent = this;
+                    this.particles.parent = this;
+                    this.revealStepIndex = config.steps.findIndex(s => s.type === 'reveal');
 
-       <!-- DESKTOP NEXT BUTTON -->
-       <div class="w-16 md:w-24 flex-shrink-0 flex items-center justify-center">
-           <button id="nextBtn-desktop" aria-label="Nächster Schritt" class="nav-btn p-4 bg-yellow-200 text-emerald-900 rounded-full shadow-lg hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-300 hidden md:block">
-               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-           </button>
-       </div>
-   </main>
+                    this.ctx = this.elements.particleCanvas.getContext('2d');
+                    this.bindEvents();
+                   
+                    config.steps.forEach(step => {
+                        step.content = step.content.replace('ICON_plane', config.icons.plane).replace('ICON_hotel', config.icons.hotel);
+                    });
+                   
+                    this.preloadAssets();
+                    this.createProgressBar();
+                    this.countdown.populateWheels();
+                    this.particles.setupCanvas();
+                    this.particles.create(); // Partikel sofort erstellen
+                    this.elements.particleCanvas.classList.add('visible'); // Partikel sofort sichtbar machen
+                    this.particles.animate();
+                    this.updateView();
+                },
 
+                // Events binden
+                bindEvents() {
+                    this.elements.nextBtn.addEventListener('click', () => this.navigate(1));
+                    this.elements.prevBtn.addEventListener('click', () => this.navigate(-1));
+                    this.elements.nextBtnDesktop.addEventListener('click', () => this.navigate(1));
+                    this.elements.prevBtnDesktop.addEventListener('click', () => this.navigate(-1));
 
-   <script>
-       document.addEventListener('DOMContentLoaded', () => {
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'ArrowRight') this.navigate(1);
+                        if (e.key === 'ArrowLeft') this.navigate(-1);
+                    });
+                    window.addEventListener('resize', () => {
+                        this.particles.setupCanvas();
+                        this.particles.create();
+                        this.countdown.calculateDigitHeight();
+                    });
+                },
 
+                // Assets vorladen
+                preloadAssets() {
+                    const img = new Image();
+                    img.src = config.parisImageUrl;
+                },
+               
+                // Navigation
+                navigate(direction) {
+                    const newStep = this.state.currentStep + direction;
+                    if (newStep >= 0 && newStep < config.steps.length) {
+                        this.state.currentStep = newStep;
+                        this.state.visitedSteps.add(newStep);
+                        this.updateView();
+                    }
+                },
+               
+                jumpToStep(index) {
+                    if (index >= 0 && index < config.steps.length) {
+                        this.state.currentStep = index;
+                        this.state.visitedSteps.add(index);
+                        this.updateView();
+                    }
+                },
 
-           // --- 1. ZENTRALE KONFIGURATION ---
-           // Alle veränderbaren Daten sind an einem Ort für leichtere Anpassung.
-           const config = {
-               departureDate: '2025-11-18T06:45:00',
-               parisImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1950&q=80',
-               icons: {
-                   plane: `<svg class="travel-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M17.25 8.56l-5.25-1.5V3.75a1.5 1.5 0 00-3 0v3.31l-5.25 1.5a1.5 1.5 0 00-1.13 1.44v1.51a1.5 1.5 0 001.03 1.44l5.35 1.53v2.96l-1.88.94a.75.75 0 10.66 1.34l2.5-1.25a.75.75 0 00.44 0l2.5 1.25a.75.75 0 10.66-1.34l-1.88-.94v-2.96l5.35-1.53a1.5 1.5 0 001.03-1.44v-1.51a1.5 1.5 0 00-1.13-1.44z" /></svg>`,
-                   hotel: `<svg class="travel-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" /></svg>`,
-               },
-               steps: [
-                   { type: 'intro', title: "Für Antonella", content: "Ich habe eine kleine Überraschung für dich.\nBist du bereit?" },
-                   { type: 'intro', title: "Ein kleines Rätsel...", content: "Stell dir eine Stadt vor, in der an jeder Ecke Kunst, Geschichte und Liebe in der Luft liegen.\nEine Stadt, die wir aus einem unserer Lieblingsfilme kennen." },
-                   { type: 'reveal', title: "PACK DEINE KOFFER!", content: "Wir fliegen nach\n\n<span class='font-fancy font-bold text-yellow-100 text-4xl sm:text-5xl tracking-widest'>P A R I S</span>\n\nDie Stadt der Lichter wartet auf uns!" },
-                   { type: 'details', title: "Unsere Reisedaten", content: `\n<span class='font-bold text-yellow-100'>Dienstag, 18. Nov</span> bis <span class='font-bold text-yellow-100'>Freitag, 21. Nov.</span>\n\n${"ICON_plane"}FRA → CDG | 06:45 - 08:00 Uhr\n${"ICON_hotel"}Hôtel Barnett Paris` },
-                   { type: 'day', title: "Tag 1: Ankunft & Montmartre", content: "Nach der Ankunft entdecken wir Montmartre, besuchen die Sacré-Cœur und genießen ein romantisches Dinner mit Blick über die Stadt." },
-                   { type: 'day', title: "Tag 2: Kunst & Lichter", content: "Wir bestaunen die Mona Lisa im Louvre, schlendern durch den Jardin des Tuileries und lassen den Abend mit dem Funkeln des Eiffelturms ausklingen." },
-                   { type: 'day', title: "Tag 3: Filmkulissen & Historie", content: "Wir erkunden den Canal Saint-Martin, Le Marais und die Île de la Cité mit Notre-Dame, bevor wir den Abend im Quartier Latin verbringen." },
-                   { type: 'day', title: "Tag 4: Ein süßer Abschied", content: `Den letzten Vormittag nutzen wir für ein gemütliches Frühstück, bevor es nach Hause geht.\n\n${"ICON_plane"}CDG → FRA | 18:50 - 20:05 Uhr` },
-                   { type: 'final', title: "Paris wartet auf uns", content: "Die fabelhafte Welt der Antonella", isFinal: true }
-               ]
-           };
+                // Hauptfunktion zum Aktualisieren der Ansicht
+                updateView() {
+                    const step = config.steps[this.state.currentStep];
 
+                    // Vorherige Animationen zurücksetzen
+                    this.elements.card.classList.remove('card-animation');
+                    void this.elements.card.offsetWidth;
+                    this.elements.card.classList.add('card-animation');
+                    this.elements.title.classList.remove('reveal-animation');
+                    this.elements.content.classList.remove('reveal-animation');
+                   
+                    this.updateBackgroundAndEffects(step);
 
-           // --- 2. MODULARE ANWENDUNGS-LOGIK ---
-           // Die Logik ist in einem Objekt gekapselt, um den globalen Scope sauber zu halten.
-           const SurpriseApp = {
-               // Zustand der Anwendung
-               state: {
-                   currentStep: 0,
-                   countdownInterval: null,
-                   digitHeight: 0,
-                   particles: [],
-                   visitedSteps: new Set([0]),
-               },
+                    if (step.isFinal) {
+                        this.elements.cardContentWrapper.classList.add('hidden');
+                        this.elements.finalViewContainer.classList.remove('hidden');
+                        this.renderItinerary();
+                        this.renderPackingList();
+                        this.countdown.start();
+                    } else {
+                        this.elements.cardContentWrapper.classList.remove('hidden');
+                        this.elements.finalViewContainer.classList.add('hidden');
+                        this.elements.title.textContent = step.title;
+                        this.elements.content.innerHTML = step.content;
+                        this.countdown.stop();
 
+                        this.elements.content.classList.remove('items-start');
+                        this.elements.content.classList.add('items-center');
 
-               // DOM-Elemente
-               elements: {
-                   body: document.body,
-                   overlay: document.getElementById('overlay'),
-                   card: document.getElementById('card'),
-                   title: document.getElementById('title'),
-                   content: document.getElementById('content'),
-                   prevBtn: document.getElementById('prevBtn'),
-                   nextBtn: document.getElementById('nextBtn'),
-                   prevBtnDesktop: document.getElementById('prevBtn-desktop'),
-                   nextBtnDesktop: document.getElementById('nextBtn-desktop'),
-                   progressBar: document.getElementById('progress-bar'),
-                   cardContentWrapper: document.getElementById('card-content-wrapper'),
-                   finalViewContainer: document.getElementById('final-view-container'),
-                   itineraryDetails: document.getElementById('itinerary-details'),
-                   packingList: document.getElementById('packing-list'),
-                   countdown: {
-                       container: document.getElementById('countdown-container'),
-                       days: document.getElementById('days'),
-                       hours: document.getElementById('hours'),
-                       minutes: document.getElementById('minutes'),
-                       seconds: document.getElementById('seconds'),
-                   },
-                   particleCanvas: document.getElementById('particle-canvas'),
-                   backgroundOverlay: document.getElementById('background-overlay'), // NEU
-               },
-              
-               // Initialisierung
-               init() {
-                   this.countdown.parent = this;
-                   this.particles.parent = this;
-                   // NEU: Den Index des "Enthüllungs-Schritts" einmalig speichern
-                   this.revealStepIndex = config.steps.findIndex(s => s.type === 'reveal');
+                        this.elements.title.classList.add('reveal-animation');
+                        this.elements.content.classList.add('reveal-animation');
+                    }
+                   
+                    this.updateNavigationControls(step);
+                    this.updateProgressBar();
+                },
 
+                updateBackgroundAndEffects(step) {
+                    const showParis = this.state.currentStep >= this.revealStepIndex;
 
-                   this.ctx = this.elements.particleCanvas.getContext('2d');
-                   this.bindEvents();
-                  
-                   config.steps.forEach(step => {
-                       step.content = step.content.replace('ICON_plane', config.icons.plane).replace('ICON_hotel', config.icons.hotel);
-                   });
-                  
-                   this.preloadAssets();
-                   this.createProgressBar();
-                   this.countdown.populateWheels();
-                   this.particles.setupCanvas();
-                   this.particles.animate();
-                   this.updateView();
-               },
+                    // *** ÄNDERUNGEN HIER: Overlay und Blur stärker ***
+                    if (showParis) {
+                        this.elements.overlay.style.opacity = '0.95'; // Noch dunkler
+                        this.elements.overlay.style.backdropFilter = 'blur(30px)'; // Noch unschärfer
+                    } else {
+                        this.elements.overlay.style.opacity = '0.6';
+                        this.elements.overlay.style.backdropFilter = 'blur(16px)';
+                    }
 
+                    this.elements.backgroundOverlay.style.opacity = showParis ? '1' : '0';
+                    if (showParis && !this.elements.backgroundOverlay.style.backgroundImage) {
+                        this.elements.backgroundOverlay.style.backgroundImage = `url('${config.parisImageUrl}')`;
+                    }
+                },
 
-               // Events binden
-               bindEvents() {
-                   this.elements.nextBtn.addEventListener('click', () => this.navigate(1));
-                   this.elements.prevBtn.addEventListener('click', () => this.navigate(-1));
-                   this.elements.nextBtnDesktop.addEventListener('click', () => this.navigate(1));
-                   this.elements.prevBtnDesktop.addEventListener('click', () => this.navigate(-1));
+                updateNavigationControls() {
+                    const isFirstStep = this.state.currentStep === 0;
+                    const isLastStep = this.state.currentStep === config.steps.length - 1;
 
+                    const prevVisibility = isFirstStep ? 'hidden' : 'visible';
+                    const nextVisibility = isLastStep ? 'hidden' : 'visible';
 
-                   document.addEventListener('keydown', (e) => {
-                       if (e.key === 'ArrowRight') this.navigate(1);
-                       if (e.key === 'ArrowLeft') this.navigate(-1);
-                   });
-                   window.addEventListener('resize', () => {
-                       this.particles.setupCanvas();
-                       this.particles.create();
-                       this.countdown.calculateDigitHeight();
-                   });
-               },
+                    this.elements.prevBtn.style.visibility = prevVisibility;
+                    this.elements.prevBtnDesktop.style.visibility = prevVisibility;
 
+                    this.elements.nextBtn.style.visibility = nextVisibility;
+                    this.elements.nextBtnDesktop.style.visibility = nextVisibility;
+                },
 
-               // Assets vorladen
-               preloadAssets() {
-                   const img = new Image();
-                   img.src = config.parisImageUrl;
-               },
-              
-               // Navigation
-               navigate(direction) {
-                   const newStep = this.state.currentStep + direction;
-                   if (newStep >= 0 && newStep < config.steps.length) {
-                       this.state.currentStep = newStep;
-                       this.state.visitedSteps.add(newStep);
-                       this.updateView();
-                   }
-               },
-              
-               jumpToStep(index) {
-                   if (index >= 0 && index < config.steps.length) {
-                       this.state.currentStep = index;
-                       this.state.visitedSteps.add(index);
-                       this.updateView();
-                   }
-               },
+                // --- Fortschrittsanzeige Logik ---
+                createProgressBar() {
+                    this.elements.progressBar.innerHTML = '';
+                    config.steps.forEach((_, index) => {
+                        const dot = document.createElement('button');
+                        dot.className = 'progress-dot';
+                        dot.setAttribute('aria-label', `Gehe zu Schritt ${index + 1}`);
+                        dot.addEventListener('click', () => this.jumpToStep(index));
+                        this.elements.progressBar.appendChild(dot);
+                    });
+                },
+               
+                updateProgressBar() {
+                    const dots = this.elements.progressBar.querySelectorAll('.progress-dot');
+                    dots.forEach((dot, index) => {
+                        dot.classList.remove('active', 'visited');
+                        if (index === this.state.currentStep) {
+                            dot.classList.add('active');
+                        }
+                        if (this.state.visitedSteps.has(index)) {
+                            dot.classList.add('visited');
+                        }
+                    });
+                },
 
+                // --- Reiseplan Logik ---
+                renderItinerary() {
+                    const itineraryEl = this.elements.itineraryDetails;
+                    const daySteps = config.steps.filter(s => s.type === 'day');
+                   
+                    let html = `<h4 class="list-title">Geplanter Reiseverlauf:</h4><div class="space-y-3">`;
+                    daySteps.forEach(step => {
+                         html += `<div class="bg-emerald-800/50 p-3 rounded-lg">
+                                    <p class="font-bold text-yellow-100">${step.title}</p>
+                                    <p class="text-sm text-emerald-100/90">${step.content}</p>
+                                 </div>`;
+                    });
+                    html += `</div>`;
+                    itineraryEl.innerHTML = html;
+                },
 
-               // Hauptfunktion zum Aktualisieren der Ansicht
-               updateView() {
-                   const step = config.steps[this.state.currentStep];
+                // --- Packliste Logik ---
+                renderPackingList() {
+                    const packingListEl = this.elements.packingList;
+                    if (!packingListEl) return;
 
+                    const list = {
+                        "Kleidung": [
+                            "1x Jacke (am besten auf dem Flug tragen)",
+                            "1-2 Pullover",
+                            "2-3 Oberteile (T-Shirts/Langarm)",
+                            "1x schickeres Outfit für Abends",
+                            "1x bequeme Hose/Jeans",
+                            "4x Unterwäsche & Socken",
+                            "Schlafanzug",
+                            "Bequeme Schuhe (am Flug tragen)",
+                        ],
+                        "Kulturbeutel (< 100ml)": [
+                            "Zahnbürste & -pasta",
+                            "Deo, Duschgel/Shampoo (Reisegrößen)",
+                            "Wichtige Medikamente & persönliche Artikel"
+                        ],
+                        "Elektronik & Dokumente": [
+                            "Handy & Ladekabel, Powerbank",
+                            "Personalausweis/Reisepass",
+                            "Kredit-/EC-Karte & etwas Bargeld",
+                            "Buchungsbestätigungen (digital)"
+                        ]
+                    };
 
-                   // Vorherige Animationen zurücksetzen
-                   this.elements.card.classList.remove('card-animation');
-                   void this.elements.card.offsetWidth;
-                   this.elements.card.classList.add('card-animation');
-                   this.elements.title.classList.remove('reveal-animation');
-                   this.elements.content.classList.remove('reveal-animation');
-                  
-                   this.updateBackgroundAndEffects(step);
+                    let html = `<h4 class="list-title">Packliste (Nur Handgepäck)</h4><div class="space-y-4">`;
 
-
-                   if (step.isFinal) {
-                       this.elements.cardContentWrapper.classList.add('hidden');
-                       this.elements.finalViewContainer.classList.remove('hidden');
-                       this.renderItinerary();
-                       this.renderPackingList(); // NEUER AUFRUF
-                       this.countdown.start();
-                   } else {
-                       this.elements.cardContentWrapper.classList.remove('hidden');
-                       this.elements.finalViewContainer.classList.add('hidden');
-                       this.elements.title.textContent = step.title;
-                       this.elements.content.innerHTML = step.content;
-                       this.countdown.stop();
-
-
-                       // Inhalt wird jetzt immer zentriert ausgerichtet
-                       this.elements.content.classList.remove('items-start');
-                       this.elements.content.classList.add('items-center');
-
-
-                       // Animation wird jetzt auf allen Seiten angewendet, nicht nur auf der 'reveal'-Seite.
-                       this.elements.title.classList.add('reveal-animation');
-                       this.elements.content.classList.add('reveal-animation');
-                   }
-                  
-                   this.updateNavigationControls(step);
-                   this.updateProgressBar();
-               },
-
-
-               updateBackgroundAndEffects(step) {
-                   const showParis = this.state.currentStep >= this.revealStepIndex;
-                  
-                   // Passt die Deckkraft des Overlays an
-                   this.elements.overlay.style.opacity = showParis ? '0.8' : '0.6';
-
-
-                   // Blendet das Hintergrundbild sanft ein oder aus
-                   this.elements.backgroundOverlay.style.opacity = showParis ? '1' : '0';
-                   if (showParis && !this.elements.backgroundOverlay.style.backgroundImage) {
-                       this.elements.backgroundOverlay.style.backgroundImage = `url('${config.parisImageUrl}')`;
-                   }
-                  
-                   // Steuert die Partikel
-                   if (showParis) {
-                       this.elements.particleCanvas.classList.add('visible');
-                       if (this.state.particles.length === 0) this.particles.create();
-                   } else {
-                       this.elements.particleCanvas.classList.remove('visible');
-                   }
-               },
-
-
-               updateNavigationControls() {
-                   const isFirstStep = this.state.currentStep === 0;
-                   const isLastStep = this.state.currentStep === config.steps.length - 1;
-
-
-                   const prevVisibility = isFirstStep ? 'hidden' : 'visible';
-                   const nextVisibility = isLastStep ? 'hidden' : 'visible';
-
-
-                   this.elements.prevBtn.style.visibility = prevVisibility;
-                   this.elements.prevBtnDesktop.style.visibility = prevVisibility;
-
-
-                   this.elements.nextBtn.style.visibility = nextVisibility;
-                   this.elements.nextBtnDesktop.style.visibility = nextVisibility;
-               },
-
-
-               // --- Fortschrittsanzeige Logik ---
-               createProgressBar() {
-                   this.elements.progressBar.innerHTML = '';
-                   config.steps.forEach((_, index) => {
-                       const dot = document.createElement('button');
-                       dot.className = 'progress-dot';
-                       dot.setAttribute('aria-label', `Gehe zu Schritt ${index + 1}`);
-                       dot.addEventListener('click', () => this.jumpToStep(index));
-                       this.elements.progressBar.appendChild(dot);
-                   });
-               },
-              
-               updateProgressBar() {
-                   const dots = this.elements.progressBar.querySelectorAll('.progress-dot');
-                   dots.forEach((dot, index) => {
-                       dot.classList.remove('active', 'visited');
-                       if (index === this.state.currentStep) {
-                           dot.classList.add('active');
-                       }
-                       if (this.state.visitedSteps.has(index)) {
-                           dot.classList.add('visited');
-                       }
-                   });
-               },
-
-
-               // --- Reiseplan Logik ---
-               renderItinerary() {
-                   const itineraryEl = this.elements.itineraryDetails;
-                   const daySteps = config.steps.filter(s => s.type === 'day');
-                  
-                   let html = `<h4 class="list-title">Geplanter Reiseverlauf:</h4><div class="space-y-3">`;
-                   daySteps.forEach(step => {
+                    for (const category in list) {
                         html += `<div class="bg-emerald-800/50 p-3 rounded-lg">
-                                   <p class="font-bold text-yellow-100">${step.title}</p>
-                                   <p class="text-sm text-emerald-100/90">${step.content}</p>
-                                </div>`;
-                   });
-                   html += `</div>`;
-                   itineraryEl.innerHTML = html;
-               },
+                                    <p class="font-bold text-yellow-100">${category}</p>
+                                    <ul class="list-disc list-inside text-sm text-emerald-100/90 mt-1 pl-1 space-y-1">`;
+                        list[category].forEach(item => {
+                            html += `<li>${item}</li>`;
+                        });
+                        html += `</ul></div>`;
+                    }
 
+                    html += `</div>`;
+                    packingListEl.innerHTML = html;
+                },
 
-               // NEU --- Packliste Logik ---
-               renderPackingList() {
-                   const packingListEl = this.elements.packingList;
-                   if (!packingListEl) return;
+                // --- Countdown Logik (als Unter-Modul) ---
+                countdown: {
+                    populateWheels() {
+                        const allWheels = document.querySelectorAll('.digit-wheel');
+                        allWheels.forEach(wheel => {
+                            wheel.innerHTML = '';
+                            for (let i = 0; i <= 9; i++) {
+                                wheel.innerHTML += `<span>${i}</span>`;
+                            }
+                        });
+                    },
+                    calculateDigitHeight() {
+                        const sampleSpan = document.querySelector('.digit-wheel span');
+                        if (sampleSpan && sampleSpan.clientHeight > 0) {
+                            this.parent.state.digitHeight = sampleSpan.clientHeight;
+                        }
+                    },
+                    updateWheels(element, newValue) {
+                        if (this.parent.state.digitHeight === 0) return;
+                        const wheels = element.querySelectorAll('.digit-wheel');
+                        const newDigits = newValue.padStart(2, '0');
+                        wheels.forEach((wheel, index) => {
+                            const digit = parseInt(newDigits[index], 10);
+                            wheel.style.transform = `translateY(${-digit * this.parent.state.digitHeight}px)`;
+                        });
+                    },
+                    start() {
+                        if (this.parent.state.countdownInterval) return;
+                        if (this.parent.state.digitHeight === 0) this.calculateDigitHeight();
+                       
+                        const update = () => {
+                            const now = new Date().getTime();
+                            const distance = new Date(config.departureDate).getTime() - now;
+                            if (distance < 0) {
+                                this.stop();
+                                this.parent.elements.countdown.container.innerHTML = "<h3 class='font-fancy text-3xl text-yellow-100'>✨ Das Abenteuer hat begonnen! ✨</h3>";
+                                return;
+                            }
+                            const d = Math.floor(distance / (1000 * 60 * 60 * 24));
+                            const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                            const s = Math.floor((distance % (1000 * 60)) / 1000);
+                            this.updateWheels(this.parent.elements.countdown.days, String(d));
+                            this.updateWheels(this.parent.elements.countdown.hours, String(h));
+                            this.updateWheels(this.parent.elements.countdown.minutes, String(m));
+                            this.updateWheels(this.parent.elements.countdown.seconds, String(s));
+                        };
+                        update();
+                        this.parent.state.countdownInterval = setInterval(update, 1000);
+                    },
+                    stop() {
+                        clearInterval(this.parent.state.countdownInterval);
+                        this.parent.state.countdownInterval = null;
+                    },
+                },
 
+                // --- Partikel Logik (als Unter-Modul) ---
+                particles: {
+                    setupCanvas() {
+                        const canvas = this.parent.elements.particleCanvas;
+                        canvas.width = window.innerWidth;
+                        canvas.height = window.innerHeight;
+                    },
+                    create() {
+                        this.parent.state.particles = [];
+                        // *** ÄNDERUNG HIER: Partikel-Anzahl erhöht ***
+                        const particleCount = Math.floor(this.parent.elements.particleCanvas.width / 8); // Deutlich mehr Partikel
+                        for (let i = 0; i < particleCount; i++) {
+                            this.parent.state.particles.push({
+                                x: Math.random() * this.parent.elements.particleCanvas.width,
+                                y: Math.random() * this.parent.elements.particleCanvas.height,
+                                vx: (Math.random() - 0.5) * 0.3,
+                                vy: (Math.random() - 0.5) * 0.3,
+                                radius: Math.random() * 1.8 + 0.7,
+                            });
+                        }
+                    },
+                    animate() {
+                        const { particleCanvas: canvas } = this.parent.elements;
+                        const ctx = this.parent.ctx;
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = 'rgba(253, 244, 212, 0.7)';
+                       
+                        this.parent.state.particles.forEach(p => {
+                            p.x += p.vx;
+                            p.y += p.vy;
+                            if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                            if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+                        requestAnimationFrame(() => this.animate());
+                    },
+                }
+            };
 
-                   const list = {
-                       "Kleidung": [
-                           "1x Jacke (am besten auf dem Flug tragen)",
-                           "1-2 Pullover",
-                           "2-3 Oberteile (T-Shirts/Langarm)",
-                           "1x schickeres Outfit für Abends",
-                           "1x bequeme Hose/Jeans",
-                           "4x Unterwäsche & Socken",
-                           "Schlafanzug",
-                           "Bequeme Schuhe (am Flug tragen)",
-                       ],
-                       "Kulturbeutel (< 100ml)": [
-                           "Zahnbürste & -pasta",
-                           "Deo, Duschgel/Shampoo (Reisegrößen)",
-                           "Wichtige Medikamente & persönliche Artikel"
-                       ],
-                       "Elektronik & Dokumente": [
-                           "Handy & Ladekabel, Powerbank",
-                           "Personalausweis/Reisepass",
-                           "Kredit-/EC-Karte & etwas Bargeld",
-                           "Buchungsbestätigungen (digital)"
-                       ]
-                   };
-
-
-                   let html = `<h4 class="list-title">Packliste (Nur Handgepäck)</h4><div class="space-y-4">`;
-
-
-                   for (const category in list) {
-                       html += `<div class="bg-emerald-800/50 p-3 rounded-lg">
-                                   <p class="font-bold text-yellow-100">${category}</p>
-                                   <ul class="list-disc list-inside text-sm text-emerald-100/90 mt-1 pl-1 space-y-1">`;
-                       list[category].forEach(item => {
-                           html += `<li>${item}</li>`;
-                       });
-                       html += `</ul></div>`;
-                   }
-
-
-                   html += `</div>`;
-                   packingListEl.innerHTML = html;
-               },
-
-
-               // --- Countdown Logik (als Unter-Modul) ---
-               countdown: {
-                   populateWheels() {
-                       const allWheels = document.querySelectorAll('.digit-wheel');
-                       allWheels.forEach(wheel => {
-                           wheel.innerHTML = '';
-                           for (let i = 0; i <= 9; i++) {
-                               wheel.innerHTML += `<span>${i}</span>`;
-                           }
-                       });
-                   },
-                   calculateDigitHeight() {
-                       const sampleSpan = document.querySelector('.digit-wheel span');
-                       if (sampleSpan && sampleSpan.clientHeight > 0) {
-                           this.parent.state.digitHeight = sampleSpan.clientHeight;
-                       }
-                   },
-                   updateWheels(element, newValue) {
-                       if (this.parent.state.digitHeight === 0) return;
-                       const wheels = element.querySelectorAll('.digit-wheel');
-                       const newDigits = newValue.padStart(2, '0');
-                       wheels.forEach((wheel, index) => {
-                           const digit = parseInt(newDigits[index], 10);
-                           wheel.style.transform = `translateY(${-digit * this.parent.state.digitHeight}px)`;
-                       });
-                   },
-                   start() {
-                       if (this.parent.state.countdownInterval) return;
-                       if (this.parent.state.digitHeight === 0) this.calculateDigitHeight();
-                      
-                       const update = () => {
-                           const now = new Date().getTime();
-                           const distance = new Date(config.departureDate).getTime() - now;
-                           if (distance < 0) {
-                               this.stop();
-                               this.parent.elements.countdown.container.innerHTML = "<h3 class='font-fancy text-3xl text-yellow-100'>✨ Das Abenteuer hat begonnen! ✨</h3>";
-                               return;
-                           }
-                           const d = Math.floor(distance / (1000 * 60 * 60 * 24));
-                           const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                           const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                           const s = Math.floor((distance % (1000 * 60)) / 1000);
-                           this.updateWheels(this.parent.elements.countdown.days, String(d));
-                           this.updateWheels(this.parent.elements.countdown.hours, String(h));
-                           this.updateWheels(this.parent.elements.countdown.minutes, String(m));
-                           this.updateWheels(this.parent.elements.countdown.seconds, String(s));
-                       };
-                       update();
-                       this.parent.state.countdownInterval = setInterval(update, 1000);
-                   },
-                   stop() {
-                       clearInterval(this.parent.state.countdownInterval);
-                       this.parent.state.countdownInterval = null;
-                   },
-               },
-
-
-               // --- Partikel Logik (als Unter-Modul) ---
-               particles: {
-                   setupCanvas() {
-                       const canvas = this.parent.elements.particleCanvas;
-                       canvas.width = window.innerWidth;
-                       canvas.height = window.innerHeight;
-                   },
-                   create() {
-                       this.parent.state.particles = [];
-                       const particleCount = Math.floor(this.parent.elements.particleCanvas.width / 18);
-                       for (let i = 0; i < particleCount; i++) {
-                           this.parent.state.particles.push({
-                               x: Math.random() * this.parent.elements.particleCanvas.width,
-                               y: Math.random() * this.parent.elements.particleCanvas.height,
-                               vx: (Math.random() - 0.5) * 0.3,
-                               vy: (Math.random() - 0.5) * 0.3,
-                               radius: Math.random() * 1.8 + 0.7,
-                           });
-                       }
-                   },
-                   animate() {
-                       const { particleCanvas: canvas } = this.parent.elements;
-                       const ctx = this.parent.ctx;
-                       ctx.clearRect(0, 0, canvas.width, canvas.height);
-                       ctx.fillStyle = 'rgba(253, 244, 212, 0.7)';
-                      
-                       this.parent.state.particles.forEach(p => {
-                           p.x += p.vx;
-                           p.y += p.vy;
-                           if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-                           if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-                           ctx.beginPath();
-                           ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                           ctx.fill();
-                       });
-                       requestAnimationFrame(() => this.animate());
-                   },
-               }
-           };
-
-
-           // Anwendung starten
-           SurpriseApp.init();
-       });
-   </script>
+            // Anwendung starten
+            SurpriseApp.init();
+        });
+    </script>
 </body>
 </html>
+
