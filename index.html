@@ -276,7 +276,6 @@
         document.addEventListener('DOMContentLoaded', () => {
 
             // --- 1. ZENTRALE KONFIGURATION ---
-            // Alle veränderbaren Daten sind an einem Ort für leichtere Anpassung.
             const config = {
                 departureDate: '2025-11-18T06:45:00',
                 parisImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1950&q=80',
@@ -298,7 +297,6 @@
             };
 
             // --- 2. MODULARE ANWENDUNGS-LOGIK ---
-            // Die Logik ist in einem Objekt gekapselt, um den globalen Scope sauber zu halten.
             const SurpriseApp = {
                 // Zustand der Anwendung
                 state: {
@@ -307,6 +305,7 @@
                     digitHeight: 0,
                     particles: [],
                     visitedSteps: new Set([0]),
+                    mouse: { x: null, y: null }, // Hinzugefügt für Maus-Tracking
                 },
 
                 // DOM-Elemente
@@ -353,8 +352,8 @@
                     this.createProgressBar();
                     this.countdown.populateWheels();
                     this.particles.setupCanvas();
-                    this.particles.create(); // Partikel sofort erstellen
-                    this.elements.particleCanvas.classList.add('visible'); // Partikel sofort sichtbar machen
+                    this.particles.create();
+                    this.elements.particleCanvas.classList.add('visible');
                     this.particles.animate();
                     this.updateView();
                 },
@@ -375,6 +374,14 @@
                         this.particles.create();
                         this.countdown.calculateDigitHeight();
                     });
+
+                    // Hinzugefügte Events für Maus- und Touch-Interaktion
+                    window.addEventListener('mousemove', e => this.state.mouse = { x: e.clientX, y: e.clientY });
+                    window.addEventListener('mouseout', () => this.state.mouse = { x: null, y: null });
+                    window.addEventListener('touchmove', e => {
+                        if (e.touches[0]) this.state.mouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                    }, { passive: true });
+                    window.addEventListener('touchend', () => this.state.mouse = { x: null, y: null });
                 },
 
                 // Assets vorladen
@@ -441,10 +448,9 @@
                 updateBackgroundAndEffects(step) {
                     const showParis = this.state.currentStep >= this.revealStepIndex;
 
-                    // *** ÄNDERUNGEN HIER: Overlay und Blur stärker ***
                     if (showParis) {
-                        this.elements.overlay.style.opacity = '0.95'; // Noch dunkler
-                        this.elements.overlay.style.backdropFilter = 'blur(30px)'; // Noch unschärfer
+                        this.elements.overlay.style.opacity = '0.95';
+                        this.elements.overlay.style.backdropFilter = 'blur(30px)';
                     } else {
                         this.elements.overlay.style.opacity = '0.6';
                         this.elements.overlay.style.backdropFilter = 'blur(16px)';
@@ -614,6 +620,10 @@
 
                 // --- Partikel Logik (als Unter-Modul) ---
                 particles: {
+                    settings: {
+                        connectDistance: 120, // Distanz für Linien
+                        mouseRadius: 250, // Radius um die Maus für den Linien-Effekt
+                    },
                     setupCanvas() {
                         const canvas = this.parent.elements.particleCanvas;
                         canvas.width = window.innerWidth;
@@ -621,33 +631,77 @@
                     },
                     create() {
                         this.parent.state.particles = [];
-                        // *** ÄNDERUNG HIER: Partikel-Anzahl erhöht ***
-                        const particleCount = Math.floor(this.parent.elements.particleCanvas.width / 8); // Deutlich mehr Partikel
-                        for (let i = 0; i < particleCount; i++) {
-                            this.parent.state.particles.push({
-                                x: Math.random() * this.parent.elements.particleCanvas.width,
-                                y: Math.random() * this.parent.elements.particleCanvas.height,
+                        const canvas = this.parent.elements.particleCanvas;
+                        const isMobile = window.innerWidth < 768;
+                        const totalParticles = isMobile ? 150 : 250;
+
+                        // --- Erstelle nur zufällige Partikel ---
+                        for (let i = 0; i < totalParticles; i++) {
+                             this.parent.state.particles.push({
+                                x: Math.random() * canvas.width,
+                                y: Math.random() * canvas.height,
                                 vx: (Math.random() - 0.5) * 0.3,
                                 vy: (Math.random() - 0.5) * 0.3,
-                                radius: Math.random() * 1.8 + 0.7,
+                                radius: Math.random() * 1.5 + 0.5,
                             });
                         }
                     },
                     animate() {
                         const { particleCanvas: canvas } = this.parent.elements;
                         const ctx = this.parent.ctx;
+                        const { particles, mouse } = this.parent.state;
+                        const { connectDistance, mouseRadius } = this.settings;
+
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        ctx.fillStyle = 'rgba(253, 244, 212, 0.7)';
-                       
-                        this.parent.state.particles.forEach(p => {
+                        
+                        // Alle Partikel bewegen und IMMER zeichnen
+                        particles.forEach(p => {
                             p.x += p.vx;
                             p.y += p.vy;
-                            if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-                            if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                            if (p.x <= 0 || p.x >= canvas.width) p.vx *= -1;
+                            if (p.y <= 0 || p.y >= canvas.height) p.vy *= -1;
+
                             ctx.beginPath();
                             ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                            ctx.fillStyle = `rgba(253, 244, 212, 0.7)`; // Feste Sichtbarkeit
                             ctx.fill();
                         });
+
+                        // Constellation-Effekt NUR in der Nähe der Maus
+                        if (mouse.x && mouse.y) {
+                            for (let i = 0; i < particles.length; i++) {
+                                const p1 = particles[i];
+                                const distToMouse1 = Math.hypot(p1.x - mouse.x, p1.y - mouse.y);
+                                
+                                // Nur Partikel im Maus-Radius berücksichtigen
+                                if (distToMouse1 > mouseRadius) continue;
+
+                                for (let j = i + 1; j < particles.length; j++) {
+                                    const p2 = particles[j];
+                                    const distToMouse2 = Math.hypot(p2.x - mouse.x, p2.y - mouse.y);
+
+                                    if (distToMouse2 > mouseRadius) continue;
+
+                                    const distance = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+
+                                    if (distance < connectDistance) {
+                                        const opacity1 = 1 - distToMouse1 / mouseRadius;
+                                        const opacity2 = 1 - distToMouse2 / mouseRadius;
+                                        const lineOpacity = Math.max(0, Math.min(opacity1, opacity2) * (1 - distance / connectDistance));
+                                        
+                                        if (lineOpacity > 0) {
+                                            ctx.beginPath();
+                                            ctx.moveTo(p1.x, p1.y);
+                                            ctx.lineTo(p2.x, p2.y);
+                                            ctx.strokeStyle = `rgba(255, 255, 255, ${lineOpacity})`; 
+                                            ctx.lineWidth = 0.5;
+                                            ctx.stroke();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         requestAnimationFrame(() => this.animate());
                     },
                 }
@@ -659,4 +713,6 @@
     </script>
 </body>
 </html>
+
+
 
